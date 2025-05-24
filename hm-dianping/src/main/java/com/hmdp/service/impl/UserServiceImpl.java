@@ -1,14 +1,24 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.bean.copier.CopyOptions;
+import cn.hutool.core.util.RandomUtil;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.JwtUtils;
 import com.hmdp.utils.RegexUtils;
+import com.hmdp.utils.SystemConstants;
+import com.hmdp.utils.UserHolder;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +27,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.time.Duration;
-import java.util.Date;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -40,6 +48,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     // 直接用Resource, name就会是redisTemplate，找到的是RedisTemplate的bean，导致类型不匹配
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private RedisTemplate redisTemplate;
 
     @Override
     public Result sendCode(String phone) {
@@ -65,9 +76,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         // 登录成功，生成 JWT
         String token = JwtUtils.generateToken(phone);
 
+        User user = query().eq("phone", phone).one();
+        if (user == null) {
+            user = createUserWithPhone(phone);
+        }
+        UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
+        Map<String, Object> userMap = BeanUtil.beanToMap(userDTO, new HashMap<>(),
+                CopyOptions.create()
+                        .setIgnoreNullValue(true)
+                        .setFieldValueEditor((name, value) -> value.toString()));
+        // 存redis
+        String key = SystemConstants.LOGIN_USER + token;
+        redisTemplate.opsForHash().putAll(key, userMap);
+        redisTemplate.expire(key, Duration.ofMinutes(30));
         return Result.ok(Map.of("token", token));
     }
 
+    private User createUserWithPhone(String phone) {
+        User user = new User();
+        user.setPhone(phone);
+        user.setNickName(SystemConstants.USER_NICK_NAME_PREFIX + RandomUtil.randomString(10));
+        // mybatis-plus
+        save(user);
+        return user;
+    }
     @Override
     public Result logout(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
@@ -76,6 +108,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
 
         String token = authHeader.substring("Bearer ".length());
+        if (StringUtils.isBlank(token)) {
+            return Result.fail("无效请求");
+        }
+        // 删除登录信息
+        redisTemplate.delete(SystemConstants.LOGIN_USER + token);
         // 获取 token 过期时间
         Date expiration = JwtUtils.getExpiration(token);
         long ttl = expiration.getTime() - System.currentTimeMillis();
@@ -84,5 +121,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         stringRedisTemplate.opsForValue().set("jwt:blacklist:" + token, "1", ttl, TimeUnit.MILLISECONDS);
 
         return Result.ok("退出成功");
+    }
+
+    public void saveUserToRedis(UserDTO user, String token) {
+        String key = "login:user:" + token;
+
+        Map<String, String> map = new HashMap<>();
+        map.put("id", user.getId().toString());
+        map.put("nickName", user.getNickName());
+        map.put("icon", user.getIcon());
+
+        redisTemplate.opsForHash().putAll(key, map);
+
+        // 设置过期时间（30分钟）
+        redisTemplate.expire(key, Duration.ofMinutes(30));
     }
 }
