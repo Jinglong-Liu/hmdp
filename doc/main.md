@@ -145,3 +145,11 @@ TODO: 使用布隆过滤器实现
 TODO: 锁失败重试；缓存隔离，限流，降级
 
 apifox 为获取验证码接口添加后置操作，提取变量给登录接口用
+
+# 0.3.1 全局唯一id
+
+利用redis 自增
+
+UUID, redis自增 snowflake算法，UUID，leaf
+
+redis自增：0 + 时间戳 + 自增id，每天一个key
