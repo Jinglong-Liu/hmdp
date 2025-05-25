@@ -223,10 +223,7 @@
                 "type": "object",
                 "properties": {}
               },
-              "example": {
-                "phone": 13300000000,
-                "code": 907334
-              }
+              "example": "{\r\n    \"phone\": 13300000000,\r\n    \"code\": {{code}}\r\n}"
             }
           }
         },

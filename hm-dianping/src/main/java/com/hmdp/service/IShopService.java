@@ -14,5 +14,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface IShopService extends IService<Shop> {
     Shop queryById(Long id);
 
+    Shop queryWithMutex(Long id);
+
     boolean update(Shop shop);
+
+    // 逻辑过期
+    void saveShop2Redis(Long id, Long expireSeconds) throws InterruptedException;
 }
