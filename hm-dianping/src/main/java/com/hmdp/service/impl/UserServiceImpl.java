@@ -10,10 +10,7 @@ import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.UserMapper;
 import com.hmdp.service.IUserService;
-import com.hmdp.utils.JwtUtils;
-import com.hmdp.utils.RegexUtils;
-import com.hmdp.utils.SystemConstants;
-import com.hmdp.utils.UserHolder;
+import com.hmdp.utils.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,7 +56,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         }
         String code = String.valueOf(new Random().nextInt(899999) + 100000);
         // redis记录验证码有效
-        stringRedisTemplate.opsForValue().set("login:code:" + phone, code, Duration.ofMinutes(5));
+        stringRedisTemplate.opsForValue().set(RedisConstants.LOGIN_CODE_KEY + phone, code, Duration.ofMinutes(5));
 
         // 模拟发送短信
         log.debug("验证码发送到 " + phone + "，验证码是：" + code);
@@ -68,7 +65,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public Result login(String phone, String code) {
-        String cacheCode = stringRedisTemplate.opsForValue().get("login:code:" + phone);
+        String cacheCode = stringRedisTemplate.opsForValue().get(RedisConstants.LOGIN_CODE_KEY + phone);
         if (cacheCode == null || !cacheCode.equals(code)) {
             return Result.ok(Map.of("error", "验证码错误或过期")).status(401);
         }
