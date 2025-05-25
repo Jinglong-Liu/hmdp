@@ -114,3 +114,21 @@ commit: 04cfa023197b0be633d67c9eac5579a7ab08c30f
 - 登出只需要删除接口
 
 - 新增校验接口 /user/me，返回用户信息
+
+# 0.2 缓存
+
+初步使用缓存
+
+缓存了店铺类型和店铺信息
+
+店铺类型：使用zset（因为需要排序）
+GET /shop-type/list
+
+店铺信息：string类型
+GET /shop/{id}
+
+更新店铺接口
+PUT /shop
+
+先更新数据库，再删除缓存
+

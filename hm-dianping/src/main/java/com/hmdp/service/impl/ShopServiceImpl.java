@@ -1,10 +1,18 @@
 package com.hmdp.service.impl;
 
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
 import com.hmdp.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.utils.RedisConstants;
+import com.hmdp.utils.SystemConstants;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import javax.annotation.Resource;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -17,4 +25,43 @@ import org.springframework.stereotype.Service;
 @Service
 public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IShopService {
 
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Override
+    public Shop queryById(Long id) {
+        // redis查询缓存
+        String key = RedisConstants.CACHE_SHOP_KEY + id;
+        String shopJson = stringRedisTemplate.opsForValue().get(key);
+        // 判断是否存在
+        // 存在，直接返回
+        if (StrUtil.isNotBlank(shopJson)) {
+            Shop shop = JSONUtil.toBean(shopJson, Shop.class);
+            return shop;
+        }
+        // 不存在，查询数据库
+        Shop shop = getById(id);
+        // 不存在，返回错误
+        if (shop == null) {
+            return null;
+        }
+        // 存在，写入redis，返回
+        stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(shop), RedisConstants.CACHE_SHOP_TTL, TimeUnit.MINUTES);
+        return shop;
+    }
+
+    @Override
+    public boolean update(Shop shop) {
+        Long id = shop.getId();
+        if (id == null) {
+            return false;
+        }
+        // 1、更新数据库
+        updateById(shop);
+        String key = RedisConstants.CACHE_SHOP_KEY + shop.getId();
+        // 2、删除缓存
+        stringRedisTemplate.delete(key);
+        // 3、返回
+        return true;
+    }
 }
