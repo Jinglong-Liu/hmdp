@@ -1,0 +1,62 @@
+[33mcommit 2f78fc22d68e7854c6be329fef4d6c09159ece4e[m[33m ([m[1;36mHEAD -> [m[1;32mfeature/shop_cache[m[33m)[m
+Author: Jinglong-Liu <1601029287@qq.com>
+Date:   Sun May 25 20:00:45 2025 +0800
+
+    feat: 缓存店铺类型和店铺信息
+
+[33mcommit 9c07ace002df65ab0d569b5fe514138a1ab48b3c[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m
+Merge: d33cfb2 bb74b70
+Author: Jinglong-Liu <63692514+Jinglong-Liu@users.noreply.github.com>
+Date:   Sun May 25 00:23:45 2025 +0800
+
+    Merge pull request #3 from Jinglong-Liu/feature/login
+    
+    feat: 登录保存用户，登出删除
+
+[33mcommit bb74b70a399e2dab74313fce7bfb90788123d096[m[33m ([m[1;31morigin/feature/login[m[33m, [m[1;32mfeature/login[m[33m)[m
+Author: Jinglong-Liu <1601029287@qq.com>
+Date:   Sun May 25 00:19:47 2025 +0800
+
+    feat: 登录保存用户，登出删除
+
+[33mcommit d33cfb20853f7e90dc138e2c846390e358fda80d[m
+Merge: b4cdb56 fd50bbf
+Author: Jinglong-Liu <63692514+Jinglong-Liu@users.noreply.github.com>
+Date:   Sat May 24 18:51:34 2025 +0800
+
+    Merge pull request #2 from Jinglong-Liu/feature/login
+    
+    feat: 验证码，登录登出与权限校验
+
+[33mcommit fd50bbf964812e815125b0dfcb013d548fadec0b[m
+Author: Jinglong-Liu <1601029287@qq.com>
+Date:   Sat May 24 14:35:27 2025 +0800
+
+    feat: 验证码，登录登出与权限校验
+
+[33mcommit b4cdb5629e7a703028fe96b464f6fb01e7d44325[m
+Merge: 04cfa02 74340a6
+Author: Jinglong-Liu <63692514+Jinglong-Liu@users.noreply.github.com>
+Date:   Sat May 24 10:25:21 2025 +0800
+
+    Merge pull request #1 from Jinglong-Liu/doc
+    
+    v0.0.1 add doc
+
+[33mcommit 74340a6e2761110eb2ad010454f7511357c58b57[m[33m ([m[1;31morigin/doc[m[33m, [m[1;32mdoc[m[33m)[m
+Author: Jinglong-Liu <1601029287@qq.com>
+Date:   Sat May 24 10:24:03 2025 +0800
+
+    v0.0.1 add doc
+
+[33mcommit 04cfa023197b0be633d67c9eac5579a7ab08c30f[m
+Author: Jinglong-Liu <1601029287@qq.com>
+Date:   Sat May 24 00:09:22 2025 +0800
+
+    init project
+
+[33mcommit 81ba323ffc1f443ad6ecf7e9503ec3a89850d1c8[m
+Author: Jinglong-Liu <63692514+Jinglong-Liu@users.noreply.github.com>
+Date:   Sun May 18 11:07:17 2025 +0800
+
+    Initial commit

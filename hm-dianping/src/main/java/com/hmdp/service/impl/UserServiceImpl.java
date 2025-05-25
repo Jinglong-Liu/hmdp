@@ -60,7 +60,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
         // 模拟发送短信
         log.debug("验证码发送到 " + phone + "，验证码是：" + code);
-        return Result.ok("验证码发送成功:" + code);
+        return Result.ok(code);
     }
 
     @Override
@@ -118,19 +118,5 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         stringRedisTemplate.opsForValue().set("jwt:blacklist:" + token, "1", ttl, TimeUnit.MILLISECONDS);
 
         return Result.ok("退出成功");
-    }
-
-    public void saveUserToRedis(UserDTO user, String token) {
-        String key = "login:user:" + token;
-
-        Map<String, String> map = new HashMap<>();
-        map.put("id", user.getId().toString());
-        map.put("nickName", user.getNickName());
-        map.put("icon", user.getIcon());
-
-        redisTemplate.opsForHash().putAll(key, map);
-
-        // 设置过期时间（30分钟）
-        redisTemplate.expire(key, Duration.ofMinutes(30));
     }
 }
