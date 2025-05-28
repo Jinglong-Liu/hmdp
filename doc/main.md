@@ -153,3 +153,24 @@ apifox 为获取验证码接口添加后置操作，提取变量给登录接口�
 UUID, redis自增 snowflake算法，UUID，leaf
 
 redis自增：0 + 时间戳 + 自增id，每天一个key
+
+# 0.3.2 下单 乐观锁
+
+```java
+boolean success = seckillVoucherService.update()
+        .setSql("stock = stock - 1")
+        .eq("voucher_id", voucherId)
+        // 乐观锁
+        .eq("stock", voucher.getStock())
+        .update();
+```
+这样失败率很高
+```java
+boolean success = seckillVoucherService.update()
+        .setSql("stock = stock - 1")
+        .eq("voucher_id", voucherId)
+        // 乐观锁, 只需要判断 > 0 就行
+        .gt("stock", 0)
+        .update();
+```
+这样好
