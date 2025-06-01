@@ -153,3 +153,104 @@ apifox 为获取验证码接口添加后置操作，提取变量给登录接口�
 UUID, redis自增 snowflake算法，UUID，leaf
 
 redis自增：0 + 时间戳 + 自增id，每天一个key
+
+# 0.3.2 下单 乐观锁
+
+```java
+boolean success = seckillVoucherService.update()
+        .setSql("stock = stock - 1")
+        .eq("voucher_id", voucherId)
+        // 乐观锁
+        .eq("stock", voucher.getStock())
+        .update();
+```
+这样失败率很高
+```java
+boolean success = seckillVoucherService.update()
+        .setSql("stock = stock - 1")
+        .eq("voucher_id", voucherId)
+        // 乐观锁, 只需要判断 > 0 就行
+        .gt("stock", 0)
+        .update();
+```
+这样好
+
+# 0.4.1 秒杀
+
+注意事务传播机制
+```java
+package com.hmdp.service.impl;
+
+import com.hmdp.dto.Result;
+import com.hmdp.entity.SeckillVoucher;
+import com.hmdp.entity.VoucherOrder;
+import com.hmdp.mapper.VoucherOrderMapper;
+import com.hmdp.service.ISeckillVoucherService;
+import com.hmdp.service.IVoucherOrderService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.utils.RedisConstants;
+import com.hmdp.utils.RedisIdWorker;
+import com.hmdp.utils.UserHolder;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.aop.framework.AopContext;
+import org.springframework.aop.framework.AopProxy;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.annotation.Resource;
+import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * <p>
+ *  服务实现类
+ * </p>
+ *
+ * @author ljl
+ * @since 2025-06-01
+ */
+@Service
+public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, VoucherOrder> implements IVoucherOrderService {
+
+    @Override
+    @Transactional
+    public Result seckillVoucher(Long voucherId) throws InterruptedException {
+        // ...
+        final RLock lock = redissonClient.getLock(RedisConstants.LOCK_ORDER_KEY + userId);
+        boolean success = lock.tryLock(1, 10, TimeUnit.SECONDS);
+        try {
+            IVoucherOrderService iVoucherOrderService = (IVoucherOrderService)AopContext.currentProxy();
+            return iVoucherOrderService.createVoucherOrder(voucher.getVoucherId());
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    // 注意
+    // 不加也不行
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    // @Transactional
+    @Override
+    public Result createVoucherOrder(Long voucherId) {
+        Long userId = UserHolder.getUser().getId();
+        Integer count = query().eq("user_id", userId).eq("voucher_id", voucherId).count();
+        if (count > 0) {
+            return Result.fail("该用户已抢购过该优惠券");
+        }
+        // 更新时判断是否库存是否大于0 乐观锁
+        boolean success = seckillVoucherService.update().setSql(" stock = stock - 1").gt("stock", 0)
+                .eq("voucher_id", voucherId).update();
+        if (!success) {
+            return Result.fail("优惠券秒杀完毕库存不足！！！");
+        }
+        // 抢购
+    }
+}
+
+```
+
+压测单人抢购和多人抢购均通过
+
