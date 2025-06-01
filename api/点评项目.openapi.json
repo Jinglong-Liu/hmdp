@@ -81,7 +81,7 @@
             "in": "path",
             "description": "",
             "required": true,
-            "example": 1,
+            "example": 2,
             "schema": {
               "type": "number"
             }
@@ -329,6 +329,100 @@
           }
         ]
       }
+    },
+    "/voucher/seckill": {
+      "post": {
+        "summary": "添加秒杀券",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "shopId": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "shopId"
+                ]
+              },
+              "example": {
+                "shopId": 2,
+                "title": "100元代金券",
+                "subTitle": "每周一至周日都可用",
+                "rules": "全场通用\\n无需预约\\n可无限叠加\\不兑现，不找零\\n仅限堂食",
+                "payValue": 8000,
+                "actualValue": 10000,
+                "type": 1,
+                "stock": 100
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/voucher-order/seckill/{id}": {
+      "post": {
+        "summary": "秒杀优惠券",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": 11,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -340,7 +434,12 @@
       }
     }
   },
-  "servers": [],
+  "servers": [
+    {
+      "url": "http://localhost:8081",
+      "description": "开发环境"
+    }
+  ],
   "security": [
     {
       "bearer": []

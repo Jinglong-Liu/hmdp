@@ -1,8 +1,10 @@
 package com.hmdp.config;
 
 import com.hmdp.interceptor.JwtInterceptor;
+import com.hmdp.service.IVoucherOrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -16,6 +18,7 @@ import javax.annotation.Resource;
  **/
 
 @Configuration
+@EnableAspectJAutoProxy(exposeProxy = true)
 public class WebConfig implements WebMvcConfigurer {
 
     @Resource

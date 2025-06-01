@@ -85,7 +85,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         // 存redis
         String key = SystemConstants.LOGIN_USER + token;
         redisTemplate.opsForHash().putAll(key, userMap);
-        redisTemplate.expire(key, Duration.ofMinutes(30));
+        redisTemplate.expire(key, Duration.ofMinutes(60 * 24));
         return Result.ok(Map.of("token", token));
     }
 
