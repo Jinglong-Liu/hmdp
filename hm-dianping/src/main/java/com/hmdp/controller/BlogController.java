@@ -50,6 +50,10 @@ public class BlogController {
 //                .setSql("liked = liked + 1").eq("id", id).update();
         return blogService.likeBlog(id);
     }
+    @GetMapping("/likes/{id}")
+    public Result queryBlogLikes(@PathVariable("id") Long id) {
+        return blogService.queryBlogLikes(id);
+    }
 
     @GetMapping("/of/me")
     public Result queryMyBlog(@RequestParam(value = "current", defaultValue = "1") Integer current) {
