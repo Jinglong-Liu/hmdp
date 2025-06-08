@@ -629,6 +629,98 @@
         ]
       }
     },
+    "/blog": {
+      "post": {
+        "summary": "新建博客",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "title": "标题推送测试1010",
+                "content": "推送测试内容1010",
+                "images": "temp.jpg",
+                "shopId": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/blog/of/follow": {
+      "get": {
+        "summary": "滚动分页查询博客（未测试）",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "lastId",
+            "in": "query",
+            "description": "上一次查询的最小时间戳",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "",
+            "required": false,
+            "example": "偏移量",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/follow/or/not/{id}": {
       "get": {
         "summary": "查看是否关注",
@@ -680,7 +772,7 @@
             "in": "path",
             "description": "",
             "required": true,
-            "example": "1",
+            "example": "1010",
             "schema": {
               "type": "string"
             }
