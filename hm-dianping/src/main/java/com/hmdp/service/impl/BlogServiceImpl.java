@@ -7,10 +7,12 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
+import com.hmdp.entity.Follow;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.service.IFollowService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.SystemConstants;
@@ -40,6 +42,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
     @Resource
     private IBlogService blogService;
+
+    @Resource
+    private IFollowService followService;
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
@@ -132,5 +137,34 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         List<User> users = userService.query().in("id", ids).last("order by field(id," +idStr +")").list();
         final List<UserDTO> userDTOS = users.stream().map(user -> BeanUtil.copyProperties(user, UserDTO.class)).collect(Collectors.toList());
         return Result.ok(userDTOS);
+    }
+
+    @Override
+    public Result saveBlog(Blog blog) {
+        // 获取登录用户
+        UserDTO user = UserHolder.getUser();
+        blog.setUserId(user.getId());
+        // 保存探店博文
+        boolean success = blogService.save(blog);
+        if (!success) {
+            return Result.fail("新增笔记失败");
+        }
+        // 推送粉丝
+        // id 发送给粉丝
+        // 查询作者的所有粉丝
+        // select * from tb_follow where follow_user_id = ?
+        final List<Follow> follows = followService
+                .query()
+                .eq("follow_user_id", user.getId())
+                .list();
+        // 推送笔记ID给所有粉丝
+        for (Follow follow: follows) {
+            Long userId = follow.getUserId();
+            // 推送到收件箱sorted set
+            String key = "feed:" + userId;
+            stringRedisTemplate.opsForZSet().add(key, blog.getId().toString(), System.currentTimeMillis());
+        }
+        // 返回id
+        return Result.ok(blog.getId());
     }
 }
