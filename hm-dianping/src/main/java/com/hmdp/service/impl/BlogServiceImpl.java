@@ -5,20 +5,25 @@ import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
+import com.hmdp.entity.Follow;
 import com.hmdp.entity.User;
 import com.hmdp.mapper.BlogMapper;
 import com.hmdp.service.IBlogService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hmdp.service.IFollowService;
 import com.hmdp.service.IUserService;
 import com.hmdp.utils.RedisConstants;
 import com.hmdp.utils.SystemConstants;
 import com.hmdp.utils.UserHolder;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -40,6 +45,9 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
 
     @Resource
     private IBlogService blogService;
+
+    @Resource
+    private IFollowService followService;
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
@@ -132,5 +140,83 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         List<User> users = userService.query().in("id", ids).last("order by field(id," +idStr +")").list();
         final List<UserDTO> userDTOS = users.stream().map(user -> BeanUtil.copyProperties(user, UserDTO.class)).collect(Collectors.toList());
         return Result.ok(userDTOS);
+    }
+
+    @Override
+    public Result saveBlog(Blog blog) {
+        // 获取登录用户
+        UserDTO user = UserHolder.getUser();
+        blog.setUserId(user.getId());
+        // 保存探店博文
+        boolean success = blogService.save(blog);
+        if (!success) {
+            return Result.fail("新增笔记失败");
+        }
+        // 推送粉丝
+        // id 发送给粉丝
+        // 查询作者的所有粉丝
+        // select * from tb_follow where follow_user_id = ?
+        final List<Follow> follows = followService
+                .query()
+                .eq("follow_user_id", user.getId())
+                .list();
+        // 推送笔记ID给所有粉丝
+        for (Follow follow: follows) {
+            Long userId = follow.getUserId();
+            // 推送到收件箱sorted set
+            String key = RedisConstants.FEED_KEY + userId;
+            stringRedisTemplate.opsForZSet().add(key, blog.getId().toString(), System.currentTimeMillis());
+        }
+        // 返回id
+        return Result.ok(blog.getId());
+    }
+
+    @Override
+    public Result queryBlogOfFollow(Long max, Integer offset) {
+        // 查询当前用户的收件箱
+        UserDTO user = UserHolder.getUser();
+        Long userId = user.getId();
+        String key = RedisConstants.FEED_KEY + userId;
+        // zrangebyscore key max 0 WITHSCORES limit offset count
+        final Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet()
+                .reverseRangeByScoreWithScores(key, max, 0, offset, 3);
+        // 解析数据 blogId, 时间戳score (minTime), offset（和最小值一样的元素个数)
+        if (typedTuples == null || typedTuples.isEmpty()) {
+            return Result.ok();
+        }
+        List<Long> ids = new ArrayList<>(typedTuples.size());
+        long minTime = 0;
+        int retOffset = 1;
+        for (ZSetOperations.TypedTuple<String> tuple: typedTuples) {
+            String idStr = tuple.getValue();
+            ids.add(Long.valueOf(idStr));
+            long time = tuple.getScore().longValue();
+            if (time == minTime) {
+                retOffset++;
+            } else {
+                // 后取的肯定小（单调不增）
+                minTime = time;
+                retOffset = 1;
+            }
+        }
+        // offset: 分数值 == minTime的个数
+
+        // 根据id查询blog，封装返回
+        String idStr = StrUtil.join(",", ids);
+        List<Blog> blogs = blogService.query()
+                .in("id", ids)
+                .last("order by field(id," + idStr +")")
+                .list();
+
+        for (Blog blog: blogs) {
+            // 处理点赞记录
+            isBlogLiked(blog);
+        }
+        ScrollResult scrollResult = new ScrollResult();
+        scrollResult.setList(blogs);
+        scrollResult.setOffset(retOffset);
+        scrollResult.setMinTime(minTime);
+
+        return Result.ok(scrollResult);
     }
 }
